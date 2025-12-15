@@ -80,4 +80,97 @@ with col_center:
     st.image("batman_logo.png", use_column_width=True) 
     
     st.title("🦇 Magazyn Gotham (Streamlit)")
-    st.markdown("### 🌃 System kontroli zapasów Mrocznego Ry
+    st.markdown("### 🌃 System kontroli zapasów Mrocznego Rycerza")
+
+st.caption("Stan magazynu przechowywany jest w sesji. Wymaga pliku `config.toml` dla ciemnego motywu.")
+
+# --- Sekcja Dodawania Towaru ---
+st.header("➕ Przyjęcie Towaru")
+col_add_1, col_add_2 = st.columns(2)
+
+with col_add_1:
+    st.text_input("Nazwa Towaru:", 
+                  key="input_dodaj_nazwa", 
+                  placeholder="Np. Batarang, Lina")
+
+with col_add_2:
+    st.number_input("Ilość:", 
+                    min_value=0, 
+                    step=1, 
+                    key="input_dodaj_ilosc")
+
+st.button("Zapisz w Jaskini Batmana", on_click=dodaj_towar, use_container_width=True)
+
+st.markdown("---")
+
+# --- Sekcja Wydawania (Usuwanie Ilości) ---
+st.header("🛒 Wydanie Towaru (Usuwanie Ilości)")
+
+towary_do_wydania = list(st.session_state.magazyn.keys())
+
+if towary_do_wydania:
+    col_wydanie_1, col_wydanie_2 = st.columns(2)
+    
+    with col_wydanie_1:
+        wybrany_do_wydania = st.selectbox(
+            "Wybierz towar:",
+            towary_do_wydania,
+            key="wybor_do_wydania"
+        )
+    
+    with col_wydanie_2:
+        max_ilosc = st.session_state.magazyn.get(wybrany_do_wydania, 0)
+        # Upewniamy się, że towarem nie jest pusta nazwa z magazynu
+        if wybrany_do_wydania in st.session_state.magazyn:
+            ilosc_do_wydania = st.number_input(
+                f"Ilość do wydania (Max: {max_ilosc})",
+                min_value=1,
+                max_value=max_ilosc,
+                step=1,
+                key="input_usun_ilosc"
+            )
+        else:
+             ilosc_do_wydania = 0 # Zapobieganie błędom, gdy lista jest pusta
+
+    if st.button(f"Wydaj {ilosc_do_wydania} sztuk", use_container_width=True, key="btn_wydaj"):
+        wydaj_ilosc(wybrany_do_wydania, ilosc_do_wydania)
+        
+else:
+    st.info("Brak towarów do wydania w magazynie.")
+
+st.markdown("---")
+
+# --- Sekcja Usuwania Całkowitego ---
+st.header("❌ Usuń Pozycję Całkowicie")
+
+towary_do_usuniecia = list(st.session_state.magazyn.keys())
+
+if towary_do_usuniecia:
+    wybrany_do_usuniecia = st.selectbox(
+        "Wybierz towar do usunięcia:",
+        towary_do_usuniecia,
+        key="wybor_do_usuniecia_calkowitego"
+    )
+
+    if st.button(f"Usuń Całkowicie {wybrany_do_usuniecia}", use_container_width=True, key="btn_usun_calkowicie"):
+        usun_calkowicie(wybrany_do_usuniecia)
+else:
+    st.info("Brak pozycji do usunięcia.")
+
+st.markdown("---")
+
+# --- Sekcja Aktualnego Magazynu ---
+st.header("📝 Aktualny Stan Magazynu")
+
+if st.session_state.magazyn:
+    # Używamy Pandas DataFrame do eleganckiego wyświetlania danych
+    dane_df = pd.DataFrame(st.session_state.magazyn.items(), columns=['Nazwa Towaru', 'Ilość'])
+    
+    st.dataframe(dane_df, hide_index=True, use_container_width=True)
+    
+    total_items = sum(st.session_state.magazyn.values())
+    st.info(f"Całkowita liczba jednostek w magazynie: **{total_items}**")
+else:
+    st.warning("Magazyn jest obecnie pusty.")
+
+st.markdown("---")
