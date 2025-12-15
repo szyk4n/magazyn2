@@ -1,8 +1,6 @@
 import streamlit as st
 
 # --- Inicjalizacja stanu magazynu ---
-# Używamy st.session_state do przechowywania listy towarów.
-# Jest to kluczowe dla zachowania danych podczas interakcji.
 if 'magazyn' not in st.session_state:
     st.session_state.magazyn = ["Kawa", "Herbata", "Cukier", "Mąka"]
 
@@ -36,7 +34,6 @@ if st.button("Dodaj do Magazynu"):
 # --- Sekcja Usuwania Towaru ---
 st.header("➖ Usuń Towar")
 
-# Tworzenie listy opcji do usunięcia
 towary_do_usuniecia = st.session_state.magazyn
 
 if towary_do_usuniecia:
@@ -49,8 +46,10 @@ if towary_do_usuniecia:
     if st.button("Usuń wybrany towar"):
         usun_towar(wybrany_do_usuniecia)
         st.success(f"Usunięto towar: {wybrany_do_usuniecia}")
-        # Wymuszenie odświeżenia, aby poprawnie zaktualizować listę selectbox
-        st.experimental_rerun() 
+        
+        # 🟢 POPRAWKA: Zmiana st.experimental_rerun() na st.rerun()
+        st.rerun() 
+        # Jest to konieczne, aby natychmiast odświeżyć listę opcji w st.selectbox po usunięciu.
 
 else:
     st.info("Magazyn jest pusty. Nie ma nic do usunięcia.")
@@ -63,13 +62,9 @@ if st.session_state.magazyn:
     for towar in st.session_state.magazyn:
         st.write(f"* {towar}")
     
-    # Opcjonalnie: Wyświetlanie jako DataFrame
-    # st.dataframe({"Nazwa Towaru": st.session_state.magazyn})
-    
     st.info(f"Łączna liczba towarów: **{len(st.session_state.magazyn)}**")
 else:
     st.warning("Magazyn jest obecnie pusty.")
 
-# --- Instrukcja dla Streamlit ---
 st.markdown("---")
-st.caption("Aby uruchomić tę aplikację lokalnie, zapisz kod jako `app.py` i uruchom w terminalu komendę: `streamlit run app.py`")
+st.caption("Użyto `st.rerun()` zamiast przestarzałego `st.experimental_rerun()`.")
