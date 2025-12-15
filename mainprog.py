@@ -1,17 +1,20 @@
 import streamlit as st
 
-# --- Inicjalizacja stanu magazynu (teraz jako słownik) ---
-# Klucz: nazwa towaru, Wartość: ilość (int)
+# --- Inicjalizacja stanu magazynu (słownik) ---
 if 'magazyn' not in st.session_state:
     st.session_state.magazyn = {
         "Kawa": 150, 
         "Herbata": 75, 
         "Mąka": 200
     }
+# Stan dla dodawania
 if 'input_dodaj_nazwa' not in st.session_state:
     st.session_state.input_dodaj_nazwa = ""
 if 'input_dodaj_ilosc' not in st.session_state:
     st.session_state.input_dodaj_ilosc = 0
+# Stan dla usuwania ilości
+if 'input_usun_ilosc' not in st.session_state:
+    st.session_state.input_usun_ilosc = 1
 
 # --- Funkcje modyfikujące magazyn ---
 
@@ -23,12 +26,11 @@ def dodaj_towar():
     if nazwa and ilosc > 0:
         if nazwa in st.session_state.magazyn:
             st.session_state.magazyn[nazwa] += ilosc
-            st.success(f"Zaktualizowano stan towaru '{nazwa}'. Dodano: {ilosc} szt.")
+            st.success(f"Zaktualizowano stan '{nazwa}'. Dodano: {ilosc} szt.")
         else:
             st.session_state.magazyn[nazwa] = ilosc
             st.success(f"Dodano nowy towar: {nazwa} ({ilosc} szt.)")
             
-        # Resetujemy pola tekstowe i numeryczne po dodaniu
         st.session_state.input_dodaj_nazwa = ""
         st.session_state.input_dodaj_ilosc = 0
     elif not nazwa:
@@ -36,12 +38,33 @@ def dodaj_towar():
     elif ilosc <= 0:
         st.warning("Ilość musi być większa niż zero.")
 
-def usun_towar(nazwa):
-    """Usuwa towar całkowicie z magazynu i wymusza odświeżenie."""
+def wydaj_ilosc(nazwa, ilosc_do_usuniecia):
+    """Usuwa określoną ilość towaru."""
+    if nazwa not in st.session_state.magazyn:
+        st.warning(f"Błąd: Towar '{nazwa}' nie istnieje w magazynie.")
+        return
+
+    aktualny_stan = st.session_state.magazyn[nazwa]
+
+    if ilosc_do_usuniecia <= 0:
+        st.warning("Ilość do usunięcia musi być większa niż zero.")
+    elif ilosc_do_usuniecia > aktualny_stan:
+        st.error(f"Błąd: Nie można usunąć {ilosc_do_usuniecia} sztuk. Dostępny stan: {aktualny_stan}.")
+    else:
+        st.session_state.magazyn[nazwa] -= ilosc_do_usuniecia
+        st.success(f"Wydano {ilosc_do_usuniecia} sztuk towaru '{nazwa}'. Pozostało: {st.session_state.magazyn[nazwa]} szt.")
+        
+        # Opcjonalnie: usuń towar, jeśli stan spadnie do zera
+        if st.session_state.magazyn[nazwa] == 0:
+             del st.session_state.magazyn[nazwa]
+             st.info(f"Towar '{nazwa}' został całkowicie wyczerpany i usunięty z listy.")
+             st.rerun() # Wymuszenie odświeżenia, aby zaktualizować selectboxy
+
+def usun_calkowicie(nazwa):
+    """Usuwa towar całkowicie z magazynu (cała pozycja)."""
     if nazwa in st.session_state.magazyn:
         del st.session_state.magazyn[nazwa]
-        st.success(f"Usunięto towar: {nazwa}")
-        # Wymuszenie odświeżenia, aby poprawnie zaktualizować listę 'selectbox'
+        st.success(f"Całkowicie usunięto towar: {nazwa}")
         st.rerun() 
     else:
         st.warning(f"Towar '{nazwa}' nie został znaleziony w magazynie.")
@@ -49,10 +72,11 @@ def usun_towar(nazwa):
 
 # --- Interfejs Streamlit ---
 
+# 🦇 DODANIE LOGO BATMANA
+st.image("batman_logo.png", width=100) # Ścieżka do pliku z logo
 st.title("🦇 Magazyn Gotham (Streamlit)")
 st.markdown("### 🌃 System kontroli zapasów Mrocznego Rycerza")
-st.caption("Stan magazynu przechowywany jest w sesji (słownik).")
-
+st.caption("Stan magazynu przechowywany jest w sesji.")
 
 # --- Sekcja Dodawania Towaru ---
 st.header("➕ Przyjęcie Towaru")
@@ -69,12 +93,45 @@ with col2:
                     step=1, 
                     key="input_dodaj_ilosc")
 
-# Przycisk wykorzystuje callback (on_click) do wywołania funkcji dodaj_towar.
 st.button("Zapisz w Jaskini Batmana", on_click=dodaj_towar, use_container_width=True)
 
+st.markdown("---")
 
-# --- Sekcja Usuwania Towaru ---
-st.header("➖ Wydanie Towaru (Usunięcie)")
+# --- Sekcja Wydawania (Usuwanie Ilości) ---
+st.header("🛒 Wydanie Towaru (Usuwanie Ilości)")
+
+towary_do_wydania = list(st.session_state.magazyn.keys())
+
+if towary_do_wydania:
+    col_wydanie_1, col_wydanie_2 = st.columns(2)
+    
+    with col_wydanie_1:
+        wybrany_do_wydania = st.selectbox(
+            "Wybierz towar:",
+            towary_do_wydania,
+            key="wybor_do_wydania"
+        )
+    
+    with col_wydanie_2:
+        max_ilosc = st.session_state.magazyn.get(wybrany_do_wydania, 0)
+        ilosc_do_wydania = st.number_input(
+            f"Ilość do wydania (Max: {max_ilosc})",
+            min_value=1,
+            max_value=max_ilosc,
+            step=1,
+            key="input_usun_ilosc"
+        )
+
+    if st.button(f"Wydaj {ilosc_do_wydania} sztuk", use_container_width=True):
+        wydaj_ilosc(wybrany_do_wydania, ilosc_do_wydania)
+        
+else:
+    st.info("Brak towarów do wydania w magazynie.")
+
+st.markdown("---")
+
+# --- Sekcja Usuwania Całkowitego ---
+st.header("❌ Usuń Pozycję Całkowicie")
 
 towary_do_usuniecia = list(st.session_state.magazyn.keys())
 
@@ -82,30 +139,28 @@ if towary_do_usuniecia:
     wybrany_do_usuniecia = st.selectbox(
         "Wybierz towar do usunięcia:",
         towary_do_usuniecia,
-        key="wybor_do_usuniecia"
+        key="wybor_do_usuniecia_calkowitego"
     )
 
-    # Przycisk usuwania wywołuje funkcję z argumentem
-    if st.button(f"Usuń {wybrany_do_usuniecia}", use_container_width=True):
-        usun_towar(wybrany_do_usuniecia)
+    if st.button(f"Usuń Całkowicie {wybrany_do_usuniecia}", use_container_width=True):
+        usun_calkowicie(wybrany_do_usuniecia)
 else:
-    st.info("Magazyn jest pusty. Nie ma nic do usunięcia.")
+    st.info("Brak pozycji do usunięcia.")
 
+st.markdown("---")
 
 # --- Sekcja Aktualnego Magazynu ---
 st.header("📝 Aktualny Stan Magazynu")
 
 if st.session_state.magazyn:
-    # Tworzymy listę krotek (nazwa, ilość) do wyświetlenia
-    dane = [(k, v) for k, v in st.session_state.magazyn.items()]
+    import pandas as pd
+    dane_df = pd.DataFrame(st.session_state.magazyn.items(), columns=['Nazwa Towaru', 'Ilość'])
     
-    # Wyświetlanie stanu magazynu w formie tabeli dla lepszej czytelności
-    st.dataframe(dane, 
-                 column_config={0: "Nazwa Towaru", 1: "Ilość"}, 
-                 hide_index=True, 
-                 use_container_width=True)
+    st.dataframe(dane_df, hide_index=True, use_container_width=True)
     
     total_items = sum(st.session_state.magazyn.values())
     st.info(f"Całkowita liczba jednostek w magazynie: **{total_items}**")
 else:
     st.warning("Magazyn jest obecnie pusty.")
+
+st.markdown("---")
