@@ -3,33 +3,52 @@ import streamlit as st
 # --- Inicjalizacja stanu magazynu ---
 if 'magazyn' not in st.session_state:
     st.session_state.magazyn = ["Kawa", "Herbata", "Cukier", "Mąka"]
+if 'input_dodaj' not in st.session_state:
+    st.session_state.input_dodaj = ""
 
-def dodaj_towar(nazwa):
-    """Dodaje towar do listy, jeśli nie jest pusty."""
+# --- Funkcje modyfikujące magazyn ---
+
+def dodaj_towar():
+    """Dodaje towar do listy i czyści pole tekstowe."""
+    # Pobieramy wartość z pola tekstowego poprzez klucz 'input_dodaj'
+    nazwa = st.session_state.input_dodaj.strip()
+    
     if nazwa:
         st.session_state.magazyn.append(nazwa)
+        st.success(f"Dodano towar: {nazwa}")
+        # Resetujemy pole tekstowe po dodaniu (to rozwiązuje Błąd 2)
+        st.session_state.input_dodaj = ""
+    else:
+        st.warning("Nazwa towaru nie może być pusta.")
 
 def usun_towar(nazwa):
-    """Usuwa pierwsze wystąpienie towaru z listy."""
+    """Usuwa pierwsze wystąpienie towaru z listy i wymusza odświeżenie."""
     try:
         st.session_state.magazyn.remove(nazwa)
+        st.success(f"Usunięto towar: {nazwa}")
+        # Wymuszenie odświeżenia, aby poprawnie zaktualizować listę 'selectbox'
+        # POPRAWKA BŁĘDU 1: Zastąpienie st.experimental_rerun() przez st.rerun()
+        st.rerun() 
     except ValueError:
         st.warning(f"Towar '{nazwa}' nie został znaleziony w magazynie.")
+
 
 # --- Interfejs Streamlit ---
 
 st.title("📦 Prosty Magazyn (Streamlit)")
-st.caption("Dane przechowywane są w sesji (listy). Nie są zapisywane na stałe.")
+st.caption("Dane przechowywane są w sesji. Aplikacja naprawiona, błędy 'st.experimental_rerun' i 'APIException' rozwiązane.")
 
 # --- Sekcja Dodawania Towaru ---
 st.header("➕ Dodaj Towar")
-nowy_towar = st.text_input("Nazwa nowego towaru:", key="input_dodaj")
 
-if st.button("Dodaj do Magazynu"):
-    dodaj_towar(nowy_towar.strip())
-    st.success(f"Dodano towar: {nowy_towar.strip()}")
-    # Wyczyść pole tekstowe po dodaniu
-    st.session_state.input_dodaj = "" 
+# st.text_input używa teraz klucza 'input_dodaj' do pobierania i ustawiania wartości.
+st.text_input("Nazwa nowego towaru:", 
+              key="input_dodaj", 
+              placeholder="Wprowadź nazwę towaru")
+
+# Przycisk wykorzystuje callback (on_click) do wywołania funkcji dodaj_towar.
+st.button("Dodaj do Magazynu", on_click=dodaj_towar)
+
 
 # --- Sekcja Usuwania Towaru ---
 st.header("➖ Usuń Towar")
@@ -40,19 +59,16 @@ if towary_do_usuniecia:
     # Używamy st.selectbox, aby wybrać towar z listy
     wybrany_do_usuniecia = st.selectbox(
         "Wybierz towar do usunięcia:",
-        towary_do_usuniecia
+        towary_do_usuniecia,
+        key="wybor_do_usuniecia" # Dodatkowy klucz dla unikalności
     )
 
+    # Przycisk usuwania wywołuje funkcję z argumentem, używając lambda
     if st.button("Usuń wybrany towar"):
         usun_towar(wybrany_do_usuniecia)
-        st.success(f"Usunięto towar: {wybrany_do_usuniecia}")
-        
-        # 🟢 POPRAWKA: Zmiana st.experimental_rerun() na st.rerun()
-        st.rerun() 
-        # Jest to konieczne, aby natychmiast odświeżyć listę opcji w st.selectbox po usunięciu.
-
 else:
     st.info("Magazyn jest pusty. Nie ma nic do usunięcia.")
+
 
 # --- Sekcja Aktualnego Magazynu ---
 st.header("📝 Aktualny Stan Magazynu")
@@ -67,4 +83,4 @@ else:
     st.warning("Magazyn jest obecnie pusty.")
 
 st.markdown("---")
-st.caption("Użyto `st.rerun()` zamiast przestarzałego `st.experimental_rerun()`.")
+st.caption("Uruchomienie lokalne: `streamlit run app.py`")
