@@ -1,0 +1,10 @@
+[theme]
+# Główny kolor tła: Prawie czarny
+backgroundColor = "#0D0D0D" 
+# Kolor tła panelu bocznego i elementów w tle
+secondaryBackgroundColor = "#1A1A1A"
+# Kolor tekstu: Biały/Jasny
+textColor = "#FFFFFF" 
+# Główny kolor akcentu: Czysta żółć Batmana
+primaryColor = "#FFD700" 
+font = "sans serif"
